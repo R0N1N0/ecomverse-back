@@ -47,6 +47,7 @@ model Address {
   province       String
   predetermined  Boolean   @default(false)
   creationDate   DateTime  @default(now())
+  deletedDate    DateTime?
   state          String    @default("active")
   user           User      @relation(fields: [id_user], references: [id_user])
 

@@ -40,4 +40,24 @@ export class UserRepository {
     if (!user) return null;
     return new UserEntity(user);
   }
+
+  async update(id_user: number, userData: any): Promise<UserEntity> {
+    const user = await this.prisma.user.update({
+      where: { id_user: id_user },
+      data: {
+        ...userData,
+      },
+    });
+    return new UserEntity(user);
+  }
+  async remove(id_user: number): Promise<UserEntity> {
+    const user = await this.prisma.user.update({
+      where: { id_user: id_user },
+      data: {
+        deletedDate: new Date(),
+        state: 'deleted',
+      },
+    });
+    return new UserEntity(user);
+  }
 }

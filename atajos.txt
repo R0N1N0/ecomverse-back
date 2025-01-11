@@ -1,4 +1,8 @@
-crateuser:
+
+---> user
+
+
+updateUser:
 
 "firstName": "Bassou",
 "lastName": "Oumira",
@@ -13,3 +17,14 @@ login:
     "email": "oumirabassou@gmail.com",
     "password": "12345678910"
 }
+
+update: 
+
+{
+    "firstName": "pola",
+    "lastName": "leonardo",
+    "birthdate": "2024-12-13T12:00:00.000Z",
+    "email": "polaaworldboy@gmail.com",
+    "password": ""
+}
+

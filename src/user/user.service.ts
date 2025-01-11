@@ -2,6 +2,7 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -10,6 +11,7 @@ import { UserEntity } from './entities/user.entity';
 import { LoginUserDto } from './dto/login-user.dto';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UserService {
@@ -21,26 +23,58 @@ export class UserService {
 
   async createUser(createUserDto: CreateUserDto) {
     const userEntity = new UserEntity(createUserDto);
-    await this.preconditionsUserCreate(userEntity);
+    await this.isUserExist(userEntity.getEmail());
     await userEntity.hashPassword();
     const user = await this.userRepository.create(userEntity);
     return user;
   }
 
-  async findAllUsers() {
+  async findAllUsers(userDecoded: UserEntity) {
+    this.validateRol(userDecoded, 'admin');
     return this.userRepository.findAll();
   }
 
-  findOneUser(id: number) {
+  findOneUser(id: number, userDecoded: UserEntity) {
+    userDecoded = new UserEntity(userDecoded);
+    this.validateRol(userDecoded, 'admin');
     return this.userRepository.findOneById(id);
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+  findOneUserMe(userDecoded: UserEntity) {
+    userDecoded = new UserEntity(userDecoded);
+    return this.userRepository.findOneById(userDecoded.getIdUser());
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  async updateSameUser(updateUserDto: UpdateUserDto, userDecoded: UserEntity) {
+    if (userDecoded.email !== updateUserDto.email) {
+      await this.isUserExist(updateUserDto.email);
+    }
+    userDecoded = new UserEntity(userDecoded);
+    const userData = {
+      firstName: updateUserDto.firstName,
+      lastName: updateUserDto.lastName,
+      birthdate: updateUserDto.birthdate,
+      email: updateUserDto.email,
+    };
+    if (updateUserDto.password.length >= 8) {
+      updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
+      userData['password'] = updateUserDto.password;
+    }
+    return this.userRepository.update(userDecoded.getIdUser(), userData);
+  }
+
+  async remove(id: number, userDecoded: UserEntity) {
+    await this.validateRol(userDecoded, 'admin');
+    const user = await this.userRepository.findOneById(id);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    this.userRepository.remove(id);
+  }
+
+  async removeMe(userDecoded: UserEntity) {
+    userDecoded = new UserEntity(userDecoded);
+    this.userRepository.remove(userDecoded.getIdUser());
   }
 
   async userLogin(loginUserDto: LoginUserDto) {
@@ -56,10 +90,10 @@ export class UserService {
     return accessToken;
   }
 
-  async preconditionsUserCreate(userEntity: UserEntity) {
+  async isUserExist(userEmail: string) {
     // user is exist
     const isUserExist = await this.userRepository.getUserByCriteria({
-      email: userEntity.email,
+      email: userEmail,
     });
     if (isUserExist) {
       throw new ConflictException('El usuario ya existe con este email');
@@ -67,7 +101,7 @@ export class UserService {
   }
 
   async generateAccessToken(user: UserEntity) {
-    const tokenSecret = this.configService.get<string>('SECRET_TOKEN');
+    const tokenSecret = this.configService.get<string>('JWT_SECRET');
     const payload = {
       id_user: user.getIdUser(),
       firstname: user.getFirstName(),
@@ -79,5 +113,34 @@ export class UserService {
       expiresIn: '1h',
     });
     return { accessToken };
+  }
+
+  async validateIsSameUser(userDecoded: UserEntity) {
+    userDecoded = new UserEntity(userDecoded);
+    const user = await this.userRepository.getUserByCriteria({
+      id_user: userDecoded.getIdUser(),
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (
+      userDecoded.getEmail() !== user.getEmail() ||
+      userDecoded.getRol() !== user.getRol()
+    ) {
+      throw new UnauthorizedException(
+        'You do not have permission to perform this action.',
+      );
+    }
+  }
+
+  async validateRol(userDecoded: UserEntity, rol: string) {
+    userDecoded = new UserEntity(userDecoded);
+    if (userDecoded.getRol() !== rol) {
+      throw new UnauthorizedException(
+        'You do not have permission to perform this action.',
+      );
+    }
   }
 }
