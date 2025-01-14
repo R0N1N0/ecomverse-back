@@ -18,26 +18,30 @@ export class AddressController {
 
   @Post()
   create(@Req() req: any, @Body() createAddressDto: CreateAddressDto) {
-    return this.addressService.create(req.userEncoded, createAddressDto);
+    return this.addressService.create(req.userDecoded, createAddressDto);
   }
 
   @Get()
-  findAll() {
-    return this.addressService.findAll();
+  findAll(@Req() req: any) {
+    return this.addressService.findAll(req.userDecoded);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.addressService.findOne(+id);
+  findOne(@Req() req: any, @Param('id') id: string) {
+    return this.addressService.findOne(+id, req.userDecoded);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateAddressDto: UpdateAddressDto) {
-    return this.addressService.update(+id, updateAddressDto);
+  update(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() updateAddressDto: UpdateAddressDto,
+  ) {
+    return this.addressService.update(+id, updateAddressDto, req.userDecoded);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.addressService.remove(+id);
+  remove(@Req() req: any, @Param('id') id: string) {
+    return this.addressService.remove(+id, req.userDecoded);
   }
 }
