@@ -1,0 +1,11 @@
+
+
+
+
+producto --> id_product, name, description, price, creationDate, deletedDate, state
+atributos --> color
+atributos_value --> rojo, azul
+variant --> price, nombre
+variant_atributos_value --> id_variant, id_atributo_value 
+cart --> id_cart, id_user
+cart_product --> id_cart_product, id_cart, id_product, id_variant, quantity, price
