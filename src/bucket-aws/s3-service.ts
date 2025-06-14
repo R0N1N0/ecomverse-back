@@ -1,4 +1,3 @@
-// s3.service.ts
 import {
   S3Client,
   PutObjectCommand,
@@ -13,16 +12,18 @@ import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class S3Service {
   constructor(private readonly configService: ConfigService) {}
-  private s3 = new S3Client({
-    region: this.configService.get<string>('AWS_REGION'),
-    credentials: {
-      accessKeyId: this.configService.get<string>('AWS_ACCESS_KEY')!,
-      secretAccessKey: this.configService.get<string>('AWS_SECRET_KEY')!,
-    },
-  });
+
   async uploadFile(file: MulterFile, folder = 'products') {
     const ext = mime.extension(file.mimetype);
     const key = `${folder}/${uuid()}.${ext}`;
+
+    const s3 = new S3Client({
+      region: this.configService.get<string>('AWS_REGION'),
+      credentials: {
+        accessKeyId: this.configService.get<string>('AWS_ACCESS_KEY')!,
+        secretAccessKey: this.configService.get<string>('AWS_SECRET_KEY')!,
+      },
+    });
 
     const input: PutObjectCommandInput = {
       Bucket: this.configService.get('AWS_BUCKET')!,
@@ -31,8 +32,11 @@ export class S3Service {
       ContentType: file.mimetype,
     };
 
-    await this.s3.send(new PutObjectCommand(input));
+    await s3.send(new PutObjectCommand(input));
 
-    return `https://${this.configService.get('AWS_BUCKET')}.s3.${this.configService.get('AWS_REGION')}.amazonaws.com/${key}`;
+    return {
+      name: file.originalname,
+      url: `https://${this.configService.get('AWS_BUCKET')}.s3.${this.configService.get('AWS_REGION')}.amazonaws.com/${key}`,
+    };
   }
 }

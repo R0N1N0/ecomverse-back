@@ -111,8 +111,6 @@ model ProductImage {
   id_variant   Int?
   name         String
   url          String
-  createdDate  DateTime  @default(now())
-  deletedDate  DateTime?
 
 
   Product      Product   @relation(fields: [id_product], references: [id_product])

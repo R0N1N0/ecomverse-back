@@ -9,6 +9,7 @@ import {
   UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
+import { ProductImage } from 'src/product_image/entities/product_image.entity';
 import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -29,13 +30,16 @@ export class ProductController {
     @Body() createProductDto: CreateProductDto,
     @UploadedFiles() files: Multer.File[],
   ) {
-    let imageUrls: string[] = [];
+    let imagesInfo: ProductImage[] = [];
     if (files && files.length > 0) {
-      imageUrls = await Promise.all(
-        files.map((file) => this.s3Service.uploadFile(file)),
+      imagesInfo = await Promise.all(
+        files.map(async (file) => {
+          const url = (await this.s3Service.uploadFile(file)).url;
+          return { url } as ProductImage;
+        }),
       );
     }
-    return this.productService.create(createProductDto, imageUrls);
+    return this.productService.create(createProductDto, imagesInfo);
   }
 
   @Get()
